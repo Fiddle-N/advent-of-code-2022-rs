@@ -4,28 +4,40 @@ fn duplicate_work<F>(input: &str, check: F) -> u32
 where
     F: Fn(&HashSet<u32>, &HashSet<u32>) -> bool
     {
+    let assignment_to_set = |assignment: &str| {
+        let assignment: Vec<_> = assignment
+            .split("-")
+            .map(
+                |boundary| 
+                boundary.parse::<u32>().unwrap()
+            )
+            .collect();
+
+        let assignment_range: Option<HashSet<u32>>;
+
+        match assignment[..] {
+            [start, end] => 
+                assignment_range = Some(
+                    HashSet::from_iter((start..=end).step_by(1))
+                ),
+            _ => 
+                assignment_range = None,
+        }
+        assignment_range.unwrap()
+    };
+
+
     let duplicate_work: u32 = input
         .lines()
         .map(
             |assignment| {
-                let pairs = assignment.split(",");
-                let pairs = pairs.map(
-                    |assignment| {
-                        let assignment_range: Option<HashSet<u32>>;
-                        match assignment
-                            .split("-")
-                            .map(|boundary| boundary.parse::<u32>().unwrap())
-                            .collect::<Vec<u32>>()[..] {
-                            [start, end] => assignment_range = Some(HashSet::from_iter((start..=end).step_by(1))),
-                            _ => assignment_range = None,
-                        }
-                        assignment_range.unwrap()
-                    }
-                );
-                let pairs: Vec<HashSet<u32>> = pairs.collect();
-                let pairs = &pairs[..];
+                let pairs = assignment
+                    .split(",")
+                    .map(assignment_to_set)
+                    .collect::<Vec<_>>();
+
                 let result: Option<bool>;
-                match pairs {
+                match &pairs[..] {
                     [left, right] => {
                         result = Some(check(left, right))
                     },
