@@ -1,5 +1,5 @@
 fn get_top_cals(input: &str, top_no: usize) -> Option<u32> {
-    let sum_inventory = |inv: &str| {
+    let sum_each_inventory = |inv: &str| {
         inv
             .lines()
             .map(
@@ -9,15 +9,14 @@ fn get_top_cals(input: &str, top_no: usize) -> Option<u32> {
             .sum()
     };
 
-    let mut inventory: Vec<u32> = input
+    let mut inventories: Vec<u32> = input
         .split("\n\n")
-        .map(sum_inventory)
+        .map(sum_each_inventory)
         .collect();
 
-    inventory.sort();
-    inventory.reverse();
+    inventories.sort_unstable();
 
-    let top = &inventory[..top_no];
+    let top = &inventories[(inventories.len() - top_no)..];
     Some(top.iter().sum())
 }
 
