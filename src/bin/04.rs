@@ -26,7 +26,6 @@ where
         assignment_range.unwrap()
     };
 
-
     let duplicate_work: u32 = input
         .lines()
         .map(
