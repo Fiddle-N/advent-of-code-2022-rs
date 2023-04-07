@@ -6,6 +6,7 @@ enum Shape {
     SCISSORS,
 }
 
+#[derive(Copy, Clone)]
 enum Outcome {
     LOSS = 0,
     DRAW = 3,
@@ -43,156 +44,131 @@ impl Outcome {
     }
 }
 
-struct SelfRound {
-    opponent: Shape,    
-    self_: Shape,
-}
-
-struct ElfRound {
-    opponent: Shape,
-    outcome: Outcome,
-}
-
-
-fn get_char(str: &str) -> char {
-    str.chars().next().unwrap()
-}
-
-
-impl SelfRound {
-    fn new(round: &str) -> Self {
-        let mut round = round.split_whitespace();
-
-        let opponent = Shape::from_opponent(
-            get_char(round.next().unwrap())
-        );        
-
-        let self_ = Shape::from_self(
-            get_char(round.next().unwrap())
-        );    
-
-        assert!(round.next().is_none());
-
-        Self{self_, opponent}
-    }
-
-}
-
-impl ElfRound {
-    fn new(round: &str) -> Self {
-        let mut round = round.split_whitespace();
-
-        let opponent = Shape::from_opponent(
-            get_char(round.next().unwrap())
-        );    
-        let outcome = Outcome::new(
-            get_char(round.next().unwrap())
-        );
-
-        assert!(round.next().is_none());
-
-        Self{opponent, outcome}
-    }
-
-}
-
 enum RoundType {
     SELF,
     ELF,
 }
 
-enum Round {
-    SELF(SelfRound),
-    ELF(ElfRound),
+fn get_char(str: &str) -> char {
+    str.chars().next().unwrap()
 }
 
+struct Round {
+    opponent: Shape,
+    self_: Option<Shape>,
+    outcome: Option<Outcome>,
+}
 
-fn parse(input: &str, round_type: RoundType) -> impl Iterator<Item = Round> + '_ {
+impl Round {
+    fn new(round: &str, round_type: &RoundType) -> Self {
+        let mut round = round.split_whitespace();
+    
+        let opponent = Shape::from_opponent(
+            get_char(round.next().unwrap())
+        );        
+    
+        let self_;
+        let outcome;
+    
+        match round_type {
+            RoundType::SELF => {
+                self_ = Some(Shape::from_self(
+                    get_char(round.next().unwrap())
+                ));
+                outcome = None;
+            }
+            RoundType::ELF => {
+                self_ = None;
+                outcome = Some(Outcome::new(
+                    get_char(round.next().unwrap())
+                ));
+            }
+        }
+    
+        assert!(round.next().is_none());
+    
+        Self{opponent, self_, outcome}
+    
+    }
+
+    fn outcome(&self) -> Outcome {
+        let self_ = self.self_.expect(
+            "Self must be specified to calculate outcome"
+        );
+
+        match (self.opponent, self_) {
+            (opponent, self_)
+            if opponent == self_
+                => Outcome::DRAW,
+    
+            (Shape::ROCK, Shape::PAPER) 
+            | (Shape::PAPER, Shape::SCISSORS)
+            | (Shape::SCISSORS, Shape::ROCK)
+                => Outcome::WIN,
+    
+            _ 
+                => Outcome::LOSS,
+        }
+
+    }
+
+    fn self_(&self) -> Shape {
+        let outcome = match &self.outcome {
+            Some(outcome) => outcome,
+            None => panic!()
+        };
+
+        match (self.opponent, outcome) {
+            (opponent, Outcome::DRAW)
+                => opponent,
+
+            (Shape::PAPER, Outcome::LOSS)
+            | (Shape::SCISSORS, Outcome::WIN)
+                => Shape::ROCK,                
+    
+            (Shape::ROCK, Outcome::WIN)
+            | (Shape::SCISSORS, Outcome::LOSS)
+                => Shape::PAPER,         
+    
+            (Shape::ROCK, Outcome::LOSS) 
+            | (Shape::PAPER, Outcome::WIN)
+                => Shape::SCISSORS, 
+        }
+    }
+
+    fn score(&self) -> u32 {
+        let self_ = match self.self_ {
+            Some(shape) => shape,
+            None => self.self_(),
+        };
+
+        let outcome = match self.outcome {
+            Some(outcome) => outcome,
+            None => self.outcome(),
+        };
+
+        self_ as u32 + outcome as u32
+
+    }
+
+}
+
+fn strategy(input: &str, round_type: RoundType) -> u32 {
     input
         .lines()
-        .map(move |round| {
-            match round_type {
-                RoundType::SELF  => Round::SELF(SelfRound::new(round)),
-                RoundType::ELF  => Round::ELF(ElfRound::new(round)),
-            }
-        })
+        .map(
+            |round| 
+            Round::new(round, &round_type).score()
+        )
+        .sum()
 }
-
-
-fn part_one_round(round: &SelfRound) -> Outcome {
-    match round {
-        SelfRound {opponent, self_} 
-        if opponent == self_
-            => Outcome::DRAW,
-
-        SelfRound {opponent: Shape::ROCK, self_: Shape::PAPER} 
-        | SelfRound {opponent: Shape::PAPER, self_: Shape::SCISSORS}
-        | SelfRound {opponent: Shape::SCISSORS, self_: Shape::ROCK} 
-            => Outcome::WIN,
-
-        _ 
-            => Outcome::LOSS,
-    }
-}
-
-
-fn part_two_round(round: &ElfRound) -> Shape {
-    match round {
-        ElfRound {opponent, outcome: Outcome::DRAW} 
-            => *opponent,
-
-        ElfRound {opponent: Shape::PAPER, outcome: Outcome::LOSS} 
-        | ElfRound {opponent: Shape::SCISSORS, outcome: Outcome::WIN}
-            => Shape::ROCK,
-
-        ElfRound {opponent: Shape::ROCK, outcome: Outcome::WIN} 
-        | ElfRound {opponent: Shape::SCISSORS, outcome: Outcome::LOSS}
-            => Shape::PAPER,         
-
-        ElfRound {opponent: Shape::ROCK, outcome: Outcome::LOSS} 
-        | ElfRound {opponent: Shape::PAPER, outcome: Outcome::WIN}
-            => Shape::SCISSORS,    
-    }
-}
-
-
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let parsed = parse(input, RoundType::SELF);
-    let summed_scores = parsed
-        .map(
-            |round_chaperone| 
-            {
-                let round = match round_chaperone {
-                    Round::SELF(round) => round,
-                    _ => panic!("Unexpected round type")
-                };
-                let outcome_score = part_one_round(&round) as u32;
-                let self_score = round.self_ as u32;
-                outcome_score + self_score
-            }
-        )
-        .sum();
-    Some(summed_scores)
+    Some(strategy(input, RoundType::SELF))
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let parsed = parse(input, RoundType::ELF);
-    let summed_scores = parsed
-        .map(
-            |round_chaperone| 
-            {
-                let round = match round_chaperone {
-                    Round::ELF(round) => round,
-                    _ => panic!("Unexpected round type")
-                };
-                let self_score = part_two_round(&round) as u32;
-                let outcome_score = round.outcome as u32;
-                outcome_score + self_score
-            }
-        )
-        .sum();
-    Some(summed_scores)
+    Some(strategy(input, RoundType::ELF))
 }
 
 fn main() {
