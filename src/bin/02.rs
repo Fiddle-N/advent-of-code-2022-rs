@@ -113,10 +113,9 @@ impl Round {
     }
 
     fn self_(&self) -> Shape {
-        let outcome = match &self.outcome {
-            Some(outcome) => outcome,
-            None => panic!()
-        };
+        let outcome = self.outcome.expect(
+            "Outcome must be specified to calculate self"
+        );
 
         match (self.opponent, outcome) {
             (opponent, Outcome::DRAW)
