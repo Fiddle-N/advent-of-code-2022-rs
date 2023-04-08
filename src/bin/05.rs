@@ -2,6 +2,17 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 
+enum Cratemover {
+    CM9000,
+    CM9001,
+}
+
+struct Rearrangement {
+    move_: usize,
+    from: usize,
+    to: usize,
+}
+
 fn parse_stacks(stack_input: &str) -> Vec<Option<Vec<char>>> {
     let mut rows = stack_input.lines().rev();
     let header = rows.next().unwrap();
@@ -51,13 +62,6 @@ fn parse_stacks(stack_input: &str) -> Vec<Option<Vec<char>>> {
     stacks
 }
 
-struct Rearrangement {
-    move_: usize,
-    from: usize,
-    to: usize,
-}
-
-
 fn parse_rearrangements(rearrangement_input: &str) -> Vec<Rearrangement> {
     lazy_static! {
         static ref REARRANGEMENT_PTRN: Regex = Regex::new(
@@ -81,44 +85,29 @@ fn parse_rearrangements(rearrangement_input: &str) -> Vec<Rearrangement> {
         .collect()
 }
 
-fn cratemover_9000(
+
+fn cratemover(
     mut stacks: Vec<Option<Vec<char>>>, 
-    rearrangements: Vec<Rearrangement>
+    rearrangements: Vec<Rearrangement>,
+    cm: Cratemover
 ) -> Vec<Option<Vec<char>>> {
     for rearrangement in rearrangements{
-        let mut from_stack = std::mem::take(&mut stacks[rearrangement.from]).unwrap();
-        let mut to_stack = std::mem::take(&mut stacks[rearrangement.to]).unwrap();
+        let from_stack = stacks.get_mut(rearrangement.from).unwrap().as_mut().unwrap();
 
-        for _ in 0..rearrangement.move_ {
-            to_stack.push(from_stack.pop().unwrap());
+        let mut to_move = from_stack.split_off(from_stack.len() - rearrangement.move_);
+
+        match cm {
+            Cratemover::CM9000 => to_move.reverse(),
+            Cratemover::CM9001 => (),
         }
 
-        stacks[rearrangement.from] = Some(from_stack);
-        stacks[rearrangement.to] = Some(to_stack);
+        let to_stack = stacks.get_mut(rearrangement.to).unwrap().as_mut().unwrap();
+
+        to_stack.append(&mut to_move);
 
     }
     stacks
 }
-
-fn cratemover_9001(
-    mut stacks: Vec<Option<Vec<char>>>, 
-    rearrangements: Vec<Rearrangement>
-) -> Vec<Option<Vec<char>>> {
-    for rearrangement in rearrangements{
-        let mut from_stack = std::mem::take(&mut stacks[rearrangement.from]).unwrap();
-        let mut to_stack = std::mem::take(&mut stacks[rearrangement.to]).unwrap();
-
-        let to_move = from_stack.split_off(from_stack.len() - rearrangement.move_);
-
-        to_stack.extend(&to_move);
-
-        stacks[rearrangement.from] = Some(from_stack);
-        stacks[rearrangement.to] = Some(to_stack);
-        
-    }
-    stacks
-}
-
 
 fn top_stacks(stacks: Vec<Option<Vec<char>>>) -> String {
     let mut top_stacks = String::new();
@@ -136,9 +125,7 @@ fn top_stacks(stacks: Vec<Option<Vec<char>>>) -> String {
     top_stacks
 }
 
-
-
-pub fn part_one(input: &str) -> Option<String> {
+fn supply_stacks(input: &str, cm: Cratemover) -> String {
     let mut input = input.split("\n\n");
 
     let stacks = input.next().unwrap();
@@ -149,29 +136,28 @@ pub fn part_one(input: &str) -> Option<String> {
 
     assert!(input.next().is_none());
 
-    stacks = cratemover_9000(stacks, rearrangements);
-
+    match cm {
+        Cratemover::CM9000 => {
+            stacks = cratemover(stacks, rearrangements, cm);
+        },
+        Cratemover::CM9001 => {
+            stacks = cratemover(stacks, rearrangements, cm);
+        },
+    }
+    
     let top_stacks = top_stacks(stacks);
     
-    Some(top_stacks)
+    top_stacks
+}
+
+pub fn part_one(input: &str) -> Option<String> {
+    let result = supply_stacks(input, Cratemover::CM9000);
+    Some(result)
 }
 
 pub fn part_two(input: &str) -> Option<String> {
-    let mut input = input.split("\n\n");
-
-    let stacks = input.next().unwrap();
-    let mut stacks = parse_stacks(stacks);
-
-    let rearrangements = input.next().unwrap();
-    let rearrangements = parse_rearrangements(rearrangements);
-
-    assert!(input.next().is_none());
-
-    stacks = cratemover_9001(stacks, rearrangements);
-
-    let top_stacks = top_stacks(stacks);
-    
-    Some(top_stacks)
+    let result = supply_stacks(input, Cratemover::CM9001);
+    Some(result)
 }
 
 fn main() {
