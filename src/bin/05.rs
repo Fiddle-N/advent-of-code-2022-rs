@@ -144,9 +144,7 @@ fn supply_stacks(input: &str, cm: CrateMover) -> String {
 
     stacks.crate_mover(rearrangements, cm);
     
-    let top_stacks = stacks.top_stacks();
-    
-    top_stacks
+    stacks.top_stacks()
 }
 
 pub fn part_one(input: &str) -> Option<String> {
