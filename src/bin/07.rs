@@ -1,23 +1,20 @@
 use std::{cell::RefCell, collections::HashMap, rc::{Weak, Rc}};
 
-#[derive(Debug)]
 struct File {
     size: u64,
 }
 
-#[derive(Debug)]
 struct DirInner {
     subdirs: HashMap<String, Dir>,
     files: HashMap<String, File>,
     parent: WeakDir,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct Dir(Rc<RefCell<DirInner>>);
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct WeakDir(Weak<RefCell<DirInner>>);
-
 
 impl Dir {
     fn new(parent: Option<&Self>) -> Self {
@@ -71,11 +68,7 @@ impl Dir {
             .subdirs
             .values()
             .map(
-                |dir|
-                {
-                    // let dir_ = dir.0.borrow();
-                    dir.size()
-                }
+                |dir| dir.size() 
             )
             .sum();
         
