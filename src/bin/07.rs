@@ -23,7 +23,7 @@ impl Dir {
     fn new(parent: Option<&Self>) -> Self {
         let weak_parent = match parent {
             Some(parent) => {
-                let rc_dir = &(*parent).0;
+                let rc_dir = &parent.0;
                 WeakDir(Rc::downgrade(rc_dir))
 
             },
